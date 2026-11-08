@@ -436,10 +436,6 @@ curl.exe -i -X POST -H "Content-Type: application/json" --data-binary "@$d\t7.js
 
 *Figure F7e – `POST /operations` sans le bloc `catch` : statut 500.*
 
-![Code avec le catch commenté](captures/F16a_code_catch_commente.png)
-
-*Figure F7f – Code du contrôleur avec le bloc `catch (ResourceAccessException e)` mis en commentaire.*
-
 ### F.8 Modifier une opération : `PUT`
 
 | Situation | Statut | Corps de la réponse |
