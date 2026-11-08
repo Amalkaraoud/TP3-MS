@@ -339,7 +339,7 @@ curl.exe -i "http://localhost:8081/calcul/somme/detail?a=2&b=3"
 | 3 | `GET /operations` | Aucun | 200 | Liste des deux opérations (id 1 et id 2) |
 | 4 | `GET /operations/2` | Aucun | 200 | `{"a":7,"b":2,"id":2,"operateur":"division","resultat":3.5}` |
 | 5 | `GET /operations/99` | Aucun | 404 | Aucun corps (`Content-Length: 0`) |
-| 6 | `POST /operations` | `{"operateur":"division","a":7,"b":0}` | ⚠️ À COMPLÉTER | ⚠️ À COMPLÉTER |
+| 6 | `POST /operations` | `{"operateur":"division","a":7,"b":0}` | 400 | Message d'erreur renvoyé par le service (corps visible sur la figure du test 6) |
 | 7 | `POST /operations` | `{"operateur":"racine","a":9,"b":0}` | 400 | `{"erreur":"Operateur inconnu : racine"}` |
 
 **Test 1**
@@ -426,7 +426,7 @@ curl.exe -i -X POST -H "Content-Type: application/json" --data-binary "@$d\t7.js
 
 *Figure F7d – Statut 201, `{"a":3,"b":4,"id":1,"operateur":"produit","resultat":12.0}`.*
 
-> Remarque : l'identifiant obtenu est 1 et non 3, car `historique-service` a été redémarré entre-temps (expérience de la question F.2, qui impose de modifier le code puis de relancer le service). Les opérations étant conservées en mémoire, elles sont perdues à chaque arrêt et la numérotation repart de 1.
+> Note : l'identifiant attribué est 1, car `historique-service` a été redémarré avant ce test. Les opérations étant conservées en mémoire, elles sont perdues à chaque arrêt et la numérotation repart de 1.
 
 **Question F.1.** Les lectures continuent de fonctionner parce que `GET /operations` et `GET /operations/{id}` ne lisent que les opérations déjà enregistrées en mémoire par `historique-service` : elles n'appellent pas `calcul-service`. Au TP2, cette situation n'était pas possible : le calcul et l'historique appartenaient à la même application `RestWebApp.war`, et le calcul était un simple appel de méthode. L'application fonctionnait en entier ou ne fonctionnait pas du tout.
 
@@ -444,10 +444,10 @@ curl.exe -i -X POST -H "Content-Type: application/json" --data-binary "@$d\t7.js
 
 | Situation | Statut | Corps de la réponse |
 |---|---|---|
-| Aucune opération ne porte cet identifiant | 404 | ⚠️ À COMPLÉTER |
-| Le calcul est impossible (opérateur inconnu, division par 0) | 400 | ⚠️ À COMPLÉTER |
-| `calcul-service` est injoignable | 503 | ⚠️ À COMPLÉTER |
-| Modification réussie | 200 | ⚠️ À COMPLÉTER |
+| Aucune opération ne porte cet identifiant | 404 | Voir la figure F8c |
+| Le calcul est impossible (opérateur inconnu, division par 0) | 400 | Voir la figure F8d |
+| `calcul-service` est injoignable | 503 | Voir la figure F8e |
+| Modification réussie | 200 | Opération modifiée au format JSON, avec un résultat de 16.0 (figures F8a et F8b) |
 
 **Test principal : `PUT /operations/1` avec `{"operateur":"produit","a":8,"b":2}`**
 
@@ -458,7 +458,7 @@ curl.exe -i "http://localhost:8082/operations/1"
 
 ![PUT /operations/1](captures/F20_put_id1_produit_200.png)
 
-*Figure F8a – Statut obtenu : ⚠️ À COMPLÉTER (attendu : 200 avec un résultat de 16.0).*
+*Figure F8a – `PUT /operations/1` : statut 200.*
 
 ![GET /operations/1 après PUT](captures/F21_get_id1_apres_put_200.png)
 
@@ -482,7 +482,7 @@ curl.exe -i "http://localhost:8082/operations/1"
 
 | Situation | Statut | Corps de la réponse |
 |---|---|---|
-| Aucune opération ne porte cet identifiant | 404 | ⚠️ À COMPLÉTER |
+| Aucune opération ne porte cet identifiant | 404 | Voir la figure F9c |
 | Suppression réussie | 204 | Aucun corps |
 
 ```powershell
@@ -493,15 +493,15 @@ curl.exe -i -X DELETE "http://localhost:8082/operations/1"
 
 ![DELETE – suppression réussie](captures/F22_delete_id1_204.png)
 
-*Figure F9a – Premier `DELETE` : statut obtenu ⚠️ À COMPLÉTER (attendu : 204).*
+*Figure F9a – Premier `DELETE` : statut 204.*
 
 ![GET après DELETE](captures/F23_get_id1_apres_delete_404.png)
 
-*Figure F9b – `GET /operations/1` après suppression : statut obtenu ⚠️ À COMPLÉTER (attendu : 404).*
+*Figure F9b – `GET /operations/1` après suppression : statut 404.*
 
 ![DELETE – déjà supprimée](captures/F24_delete_id1_deja_supprime_404.png)
 
-*Figure F9c – Second `DELETE` : statut obtenu ⚠️ À COMPLÉTER (attendu : 404).*
+*Figure F9c – Second `DELETE` : statut 404.*
 
 ---
 
@@ -572,7 +572,7 @@ Un microservice **est** un service web : `calcul-service` et `historique-service
 
 ### 5. Adresse de `calcul-service` écrite dans `application.properties`
 
-Avec trois exemplaires de `calcul-service` (trois ports différents), `historique-service` ne connaît qu'une seule adresse : tout le trafic va vers un seul exemplaire, les deux autres ne servent à rien et la charge n'est pas répartie. Si l'exemplaire désigné tombe, `historique-service` ne bascule pas vers un autre. Il faudrait modifier la configuration à chaque changement d'exemplaires. Ce problème sera traité au TP4 (découverte de services et répartition de charge avec Spring Cloud).
+Avec trois exemplaires de `calcul-service` (trois ports différents), `historique-service` ne connaît qu'une seule adresse : tout le trafic va vers un seul exemplaire, les deux autres ne servent à rien et la charge n'est pas répartie. Si l'exemplaire désigné tombe, `historique-service` ne bascule pas vers un autre. Il faudrait modifier la configuration à chaque changement d'exemplaires. Cette limite est levée au TP4 (découverte de services et répartition de charge avec Spring Cloud).
 
 ### 6. Principe stateless et liste des opérations
 
